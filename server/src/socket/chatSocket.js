@@ -41,6 +41,16 @@ export function createRoomRegistry() {
       return { participantCount: this.getParticipantCount(roomHash) };
     },
 
+    getSocketIdsBySession(roomHash, sessionId) {
+      const roomMap = activeRooms.get(roomHash);
+      if (!roomMap) return [];
+      const ids = [];
+      for (const [sockId, info] of roomMap.entries()) {
+        if (info.sessionId === sessionId) ids.push(sockId);
+      }
+      return ids;
+    },
+
     clearRoom(roomHash) {
       activeRooms.delete(roomHash);
     },
@@ -155,6 +165,41 @@ export function registerChatSocket(io, roomRegistry) {
       });
     });
 
+    // Zero-knowledge encrypted WebRTC call signalling relay
+    socket.on('call:signal', ({ iv, ciphertext, targetSessionId }, ack) => {
+      if (!currentRoomHash || !currentSessionId) {
+        return ack?.({ ok: false, error: 'Not connected to chat.' });
+      }
+      if (typeof iv !== 'string' || typeof ciphertext !== 'string') {
+        return ack?.({ ok: false, error: 'Invalid call signal.' });
+      }
+      if (iv.length > 64 || ciphertext.length > 65536) {
+        return ack?.({ ok: false, error: 'Call signal payload too large.' });
+      }
+
+      const packet = {
+        fromSessionId: currentSessionId,
+        iv,
+        ciphertext,
+      };
+
+      if (targetSessionId && typeof targetSessionId === 'string') {
+        const targetSockets = roomRegistry.getSocketIdsBySession(
+          currentRoomHash,
+          targetSessionId
+        );
+        for (const sockId of targetSockets) {
+          if (sockId !== socket.id) {
+            io.to(sockId).emit('call:signal', packet);
+          }
+        }
+      } else {
+        socket.to(currentRoomHash).emit('call:signal', packet);
+      }
+
+      return ack?.({ ok: true });
+    });
+
     const handleLeave = async () => {
       if (!currentRoomHash) return;
       const roomHash = currentRoomHash;
@@ -166,6 +211,9 @@ export function registerChatSocket(io, roomRegistry) {
       socket.to(roomHash).emit('typing:update', {
         sessionId,
         isTyping: false,
+      });
+      socket.to(roomHash).emit('call:peer-disconnected', {
+        sessionId,
       });
 
       const { participantCount, remaining } = roomRegistry.removeParticipant(roomHash, socket.id);
