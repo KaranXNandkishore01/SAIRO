@@ -1,10 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
-  Clock,
   Eye,
   EyeOff,
-  Flame,
   KeyRound,
   Lock,
   RefreshCw,
@@ -23,12 +21,6 @@ import {
 import { generateEphemeralAlias, getOrCreateSessionId, saveEphemeralAlias } from '../utils/alias';
 import { api } from '../services/api';
 
-const TTL_OPTIONS = [
-  { label: '1 hour', minutes: 60 },
-  { label: '24 hours', minutes: 1440 },
-  { label: '7 days', minutes: 10080 },
-];
-
 const CAPACITY_OPTIONS = [
   { label: '1-on-1 (2)', value: 2 },
   { label: 'Small (5)', value: 5 },
@@ -40,9 +32,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
   const [passcode, setPasscode] = useState('');
   const [showPasscode, setShowPasscode] = useState(false);
   const [alias, setAlias] = useState(initialAlias);
-  const [ttlMinutes, setTtlMinutes] = useState(1440);
   const [maxParticipants, setMaxParticipants] = useState(2);
-  const [burnWhenEmpty, setBurnWhenEmpty] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
 
   const [statusText, setStatusText] = useState('');
@@ -50,6 +40,11 @@ export default function LandingView({ initialAlias, onRoomReady }) {
   const [loading, setLoading] = useState(false);
 
   const strength = evaluatePasscodeStrength(passcode);
+
+  // Silently wake up the backend server (helpful for free-tier cloud cold starts)
+  useEffect(() => {
+    api.getHealth().catch(() => {});
+  }, []);
 
   const handleGeneratePasscode = () => {
     setPasscode(generateSecretPasscode());
@@ -87,9 +82,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           roomHash,
           authVerifier,
           salt,
-          ttlMinutes,
           maxParticipants,
-          burnWhenEmpty,
           sessionId,
         });
 
@@ -302,35 +295,12 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                   Chat settings
                 </span>
                 <span className="text-[11px] text-slate-400 dark:text-[#849aa2]">
-                  {TTL_OPTIONS.find((t) => t.minutes === ttlMinutes)?.label} • Max {maxParticipants}
+                  Live only • Max {maxParticipants}
                 </span>
               </button>
 
               {showOptions && (
-                <div className="space-y-4 border-t border-slate-900/5 px-3.5 py-3.5 dark:border-teal-200/10 sm:px-4">
-                  <div>
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-[#9bb0b6]">
-                      <Clock className="h-3.5 w-3.5" />
-                      Auto-delete after
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {TTL_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.minutes}
-                          type="button"
-                          onClick={() => setTtlMinutes(opt.minutes)}
-                          className={`min-h-[36px] rounded-xl py-1.5 text-[11px] font-medium transition-colors sm:text-xs ${
-                            ttlMinutes === opt.minutes
-                              ? 'bg-teal-500/20 text-teal-700 ring-1 ring-teal-500/40 dark:bg-teal-400/20 dark:text-teal-200 dark:ring-teal-300/40'
-                              : 'bg-white/60 text-slate-600 hover:bg-white dark:bg-[#16212c] dark:text-[#9bb0b6] dark:hover:bg-[#1d2b38]'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
+                <div className="space-y-3 border-t border-slate-900/5 px-3.5 py-3.5 dark:border-teal-200/10 sm:px-4">
                   <div>
                     <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-[#9bb0b6]">
                       <Users className="h-3.5 w-3.5" />
@@ -353,19 +323,9 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                       ))}
                     </div>
                   </div>
-
-                  <label className="flex min-h-[36px] cursor-pointer items-center justify-between gap-3 pt-1">
-                    <span className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#c4d4d9]">
-                      <Flame className="h-3.5 w-3.5 shrink-0 text-amber-500/90" />
-                      Delete chat when everyone leaves
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={burnWhenEmpty}
-                      onChange={(e) => setBurnWhenEmpty(e.target.checked)}
-                      className="h-4 w-4 shrink-0 rounded border-slate-300 accent-teal-500"
-                    />
-                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-[#849aa2]">
+                    Messages stay live only and are never saved. The chat clears automatically once everyone leaves.
+                  </p>
                 </div>
               )}
             </div>

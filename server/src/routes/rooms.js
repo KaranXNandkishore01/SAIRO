@@ -27,9 +27,8 @@ export function createRoomRouter(io, roomRegistry) {
         roomHash,
         authVerifier,
         salt,
-        ttlMinutes = 1440,
+        ttlMinutes = 120,
         maxParticipants = 10,
-        burnWhenEmpty = false,
         sessionId,
       } = req.body || {};
 
@@ -37,7 +36,7 @@ export function createRoomRouter(io, roomRegistry) {
         return res.status(400).json({ error: 'Invalid passcode details. Please try again.' });
       }
 
-      const clampedTtl = Math.min(Math.max(Number(ttlMinutes) || 1440, 15), 10080);
+      const clampedTtl = Math.min(Math.max(Number(ttlMinutes) || 120, 15), 1440);
       const clampedMax = Math.min(Math.max(Number(maxParticipants) || 10, 2), 25);
       const expiresAt = new Date(Date.now() + clampedTtl * 60 * 1000);
 
@@ -59,7 +58,7 @@ export function createRoomRouter(io, roomRegistry) {
           roomHash: existing.roomHash,
           salt: existing.salt,
           maxParticipants: existing.maxParticipants,
-          burnWhenEmpty: existing.burnWhenEmpty,
+          burnWhenEmpty: true,
           expiresAt: existing.expiresAt,
           createdAt: existing.createdAt,
           reused: true,
@@ -71,7 +70,7 @@ export function createRoomRouter(io, roomRegistry) {
         authVerifier,
         salt,
         maxParticipants: clampedMax,
-        burnWhenEmpty: Boolean(burnWhenEmpty),
+        burnWhenEmpty: true,
         expiresAt,
       });
 

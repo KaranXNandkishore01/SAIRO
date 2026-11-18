@@ -1,32 +1,35 @@
+import crypto from 'crypto';
 import { dataStore, timingSafeEqualHex } from '../store/dataStore.js';
 
-const BURN_GRACE_MS = 15_000;
+// Short grace period so brief mobile reconnects don't wipe an active live chat,
+// while still removing the room from MongoDB within seconds once everyone leaves.
+const END_CLEANUP_GRACE_MS = 6_000;
 
 export function createRoomRegistry() {
   // Map<roomHash, Map<socketId, { sessionId: string, joinedAt: number }>>
   const activeRooms = new Map();
   // Map<roomHash, Timeout>
-  const burnTimers = new Map();
+  const cleanupTimers = new Map();
 
   return {
-    cancelBurnTimer(roomHash) {
-      const timer = burnTimers.get(roomHash);
+    cancelCleanupTimer(roomHash) {
+      const timer = cleanupTimers.get(roomHash);
       if (timer) {
         clearTimeout(timer);
-        burnTimers.delete(roomHash);
+        cleanupTimers.delete(roomHash);
       }
     },
 
-    scheduleBurnTimer(roomHash, onBurn) {
-      this.cancelBurnTimer(roomHash);
+    scheduleCleanupTimer(roomHash, onCleanup) {
+      this.cancelCleanupTimer(roomHash);
       const timer = setTimeout(async () => {
-        burnTimers.delete(roomHash);
+        cleanupTimers.delete(roomHash);
         if (this.getParticipantCount(roomHash) === 0) {
-          await onBurn();
+          await onCleanup();
         }
-      }, BURN_GRACE_MS);
+      }, END_CLEANUP_GRACE_MS);
       timer.unref?.();
-      burnTimers.set(roomHash, timer);
+      cleanupTimers.set(roomHash, timer);
     },
 
     hasSession(roomHash, sessionId) {
@@ -40,7 +43,7 @@ export function createRoomRegistry() {
     },
 
     addParticipant(roomHash, socketId, sessionId) {
-      this.cancelBurnTimer(roomHash);
+      this.cancelCleanupTimer(roomHash);
       if (!activeRooms.has(roomHash)) {
         activeRooms.set(roomHash, new Map());
       }
@@ -76,7 +79,7 @@ export function createRoomRegistry() {
     },
 
     clearRoom(roomHash) {
-      this.cancelBurnTimer(roomHash);
+      this.cancelCleanupTimer(roomHash);
       activeRooms.delete(roomHash);
     },
   };
@@ -100,7 +103,6 @@ export function registerChatSocket(io, roomRegistry) {
 
         const cleanSessionId = String(sessionId).slice(0, 64);
 
-        // Leave any previously joined room on this socket
         if (currentRoomHash && currentRoomHash !== roomHash) {
           socket.leave(currentRoomHash);
           roomRegistry.removeParticipant(currentRoomHash, socket.id);
@@ -110,7 +112,6 @@ export function registerChatSocket(io, roomRegistry) {
         const existingCount = roomRegistry.getParticipantCount(roomHash);
         const alreadyInRoom = roomRegistry.hasSession(roomHash, cleanSessionId);
 
-        // Allow reconnecting sessions even if room is at maxParticipants
         if (!alreadyInRoom && existingCount >= room.maxParticipants) {
           return ack?.({ ok: false, error: 'This chat is currently full.' });
         }
@@ -136,6 +137,7 @@ export function registerChatSocket(io, roomRegistry) {
       }
     });
 
+    // Live-only relay: encrypted messages are NEVER stored in the database
     socket.on('message:send', async ({ iv, ciphertext }, ack) => {
       try {
         if (!currentRoomHash || !currentSessionId) {
@@ -152,24 +154,16 @@ export function registerChatSocket(io, roomRegistry) {
 
         const room = await dataStore.findRoomByHash(currentRoomHash);
         if (!room) {
-          socket.emit('room:burned', { reason: 'This chat has expired or been deleted.' });
+          socket.emit('room:burned', { reason: 'This chat has ended.' });
           return ack?.({ ok: false, error: 'Chat no longer exists.' });
         }
 
-        const saved = await dataStore.createMessage({
-          roomHash: currentRoomHash,
+        const payload = {
+          _id: crypto.randomUUID(),
           iv,
           ciphertext,
           senderSessionId: currentSessionId,
-          expiresAt: room.expiresAt,
-        });
-
-        const payload = {
-          _id: saved._id,
-          iv: saved.iv,
-          ciphertext: saved.ciphertext,
-          senderSessionId: saved.senderSessionId,
-          createdAt: saved.createdAt,
+          createdAt: new Date().toISOString(),
         };
 
         io.to(currentRoomHash).emit('message:new', payload);
@@ -212,7 +206,6 @@ export function registerChatSocket(io, roomRegistry) {
       const { participantCount, remaining } = roomRegistry.removeParticipant(roomHash, socket.id);
       io.to(roomHash).emit('room:presence', { participantCount });
 
-      // Only announce leave if this session no longer has another active socket in the room
       if (!roomRegistry.hasSession(roomHash, sessionId)) {
         socket.to(roomHash).emit('room:peer-event', {
           type: 'left',
@@ -220,23 +213,16 @@ export function registerChatSocket(io, roomRegistry) {
         });
       }
 
+      // When everyone has left, remove the room from MongoDB automatically
       if (remaining === 0) {
-        try {
-          const room = await dataStore.findRoomByHash(roomHash);
-          if (room?.burnWhenEmpty) {
-            // Grace period prevents accidental deletion during brief reconnects or dev StrictMode remounts
-            roomRegistry.scheduleBurnTimer(roomHash, async () => {
-              try {
-                await dataStore.deleteRoomByHash(roomHash);
-                roomRegistry.clearRoom(roomHash);
-              } catch (err) {
-                console.error('[SOCKET] burnWhenEmpty cleanup error:', err);
-              }
-            });
+        roomRegistry.scheduleCleanupTimer(roomHash, async () => {
+          try {
+            await dataStore.deleteRoomByHash(roomHash);
+            roomRegistry.clearRoom(roomHash);
+          } catch (err) {
+            console.error('[SOCKET] Room end cleanup error:', err);
           }
-        } catch (err) {
-          console.error('[SOCKET] burnWhenEmpty lookup error:', err);
-        }
+        });
       }
     };
 

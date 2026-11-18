@@ -1,6 +1,6 @@
 const API_BASE = (import.meta.env.VITE_SERVER_URL || '').replace(/\/+$/, '');
 
-async function request(path, options = {}) {
+async function request(path, options = {}, retries = 1) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -11,9 +11,19 @@ async function request(path, options = {}) {
       ...options,
     });
   } catch {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return request(path, options, retries - 1);
+    }
     throw new Error(
-      'Unable to connect to the server right now. Please check your internet or try again in a few seconds.'
+      'Unable to connect to the server. Please check that the backend is online and CORS allows this site.'
     );
+  }
+
+  // Retry once automatically on cold-start 502/503/504 responses
+  if (retries > 0 && [502, 503, 504].includes(res.status)) {
+    await new Promise((r) => setTimeout(r, 2000));
+    return request(path, options, retries - 1);
   }
 
   const data = await res.json().catch(() => ({}));

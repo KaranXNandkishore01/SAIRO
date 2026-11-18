@@ -23,7 +23,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
   const [participantCount, setParticipantCount] = useState(1);
   const [connectionState, setConnectionState] = useState('connecting');
   const [burnedReason, setBurnedReason] = useState('');
-  const [loadingHistory, setLoadingHistory] = useState(true);
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -67,31 +66,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
     },
     [aesKey]
   );
-
-  useEffect(() => {
-    let active = true;
-    setLoadingHistory(true);
-
-    api
-      .fetchMessages(room.roomHash, authVerifier)
-      .then(async ({ messages: rawList }) => {
-        if (!active) return;
-        const decrypted = await Promise.all((rawList || []).map(decryptOne));
-        if (!active) return;
-        setMessages(decrypted);
-      })
-      .catch((err) => {
-        if (!active) return;
-        console.error('Failed to load messages:', err);
-      })
-      .finally(() => {
-        if (active) setLoadingHistory(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [room.roomHash, authVerifier, decryptOne]);
 
   useEffect(() => {
     const socket = createChatSocket();
@@ -360,13 +334,7 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
 
         {/* Scrollable Message Stream */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5 md:px-6">
-          {loadingHistory ? (
-            <div className="flex items-center justify-center py-12 text-xs text-slate-500 dark:text-[#9bb0b6]">
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-400" />
-              Loading chat...
-            </div>
-          ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
               {timeline.length === 0 &&
                 participantCount === 1 &&
                 connectionState === 'connected' && (
@@ -445,7 +413,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
 
               <div ref={endOfMessagesRef} />
             </div>
-          )}
         </div>
 
         {/* Ended Banner or Responsive Composer */}

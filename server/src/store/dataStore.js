@@ -3,10 +3,9 @@ import Room from '../models/Room.js';
 import Message from '../models/Message.js';
 import { isMongoConnected } from '../config/db.js';
 
-// In-memory fallback collections (used only if MongoDB is unavailable locally)
+// In-memory fallback collection (used only if MongoDB is unavailable locally)
 const memRoomsByHash = new Map();
 const memRoomsByPublicId = new Map();
-const memMessagesByRoomHash = new Map();
 
 function purgeExpiredMemory() {
   const now = Date.now();
@@ -14,12 +13,10 @@ function purgeExpiredMemory() {
     if (room.expiresAt.getTime() <= now) {
       memRoomsByHash.delete(hash);
       memRoomsByPublicId.delete(room.publicId);
-      memMessagesByRoomHash.delete(hash);
     }
   }
 }
 
-// Run periodic cleanup for in-memory fallback
 setInterval(purgeExpiredMemory, 60 * 1000).unref();
 
 export function timingSafeEqualHex(a, b) {
@@ -35,11 +32,20 @@ export function generatePublicId() {
 }
 
 export const dataStore = {
-  async createRoom({ roomHash, authVerifier, salt, maxParticipants, burnWhenEmpty, expiresAt }) {
+  async purgeLegacyMessages() {
+    if (isMongoConnected()) {
+      try {
+        await Message.deleteMany({});
+      } catch (err) {
+        console.warn('[SAIRO DB] Could not purge legacy messages:', err.message);
+      }
+    }
+  },
+
+  async createRoom({ roomHash, authVerifier, salt, maxParticipants, burnWhenEmpty = true, expiresAt }) {
     const publicId = generatePublicId();
 
     if (isMongoConnected()) {
-      // Remove any expired room with the same roomHash that MongoDB's 60s TTL sweep hasn't deleted yet
       await Room.deleteOne({ roomHash, expiresAt: { $lte: new Date() } });
 
       const doc = await Room.create({
@@ -48,7 +54,7 @@ export const dataStore = {
         authVerifier,
         salt,
         maxParticipants,
-        burnWhenEmpty,
+        burnWhenEmpty: Boolean(burnWhenEmpty),
         expiresAt,
       });
       return doc.toObject();
@@ -68,13 +74,12 @@ export const dataStore = {
       authVerifier,
       salt,
       maxParticipants,
-      burnWhenEmpty,
+      burnWhenEmpty: Boolean(burnWhenEmpty),
       expiresAt,
       createdAt: new Date(),
     };
     memRoomsByHash.set(roomHash, room);
     memRoomsByPublicId.set(publicId, room);
-    memMessagesByRoomHash.set(roomHash, []);
     return room;
   },
 
@@ -108,58 +113,9 @@ export const dataStore = {
     return room;
   },
 
-  async createMessage({ roomHash, iv, ciphertext, senderSessionId, expiresAt }) {
-    if (isMongoConnected()) {
-      const doc = await Message.create({
-        roomHash,
-        iv,
-        ciphertext,
-        senderSessionId,
-        expiresAt,
-      });
-      return doc.toObject();
-    }
-
-    purgeExpiredMemory();
-    const msg = {
-      _id: crypto.randomUUID(),
-      roomHash,
-      iv,
-      ciphertext,
-      senderSessionId,
-      expiresAt,
-      createdAt: new Date(),
-    };
-    const list = memMessagesByRoomHash.get(roomHash) || [];
-    list.push(msg);
-    // Cap in-memory history per room at 500 messages
-    if (list.length > 500) list.shift();
-    memMessagesByRoomHash.set(roomHash, list);
-    return msg;
-  },
-
-  async getMessagesByRoomHash(roomHash, limit = 200) {
-    if (isMongoConnected()) {
-      const msgs = await Message.find({
-        roomHash,
-        expiresAt: { $gt: new Date() },
-      })
-        .sort({ createdAt: 1 })
-        .limit(limit)
-        .select('_id iv ciphertext senderSessionId createdAt')
-        .lean();
-      return msgs;
-    }
-
-    purgeExpiredMemory();
-    const list = memMessagesByRoomHash.get(roomHash) || [];
-    return list.slice(-limit).map(({ _id, iv, ciphertext, senderSessionId, createdAt }) => ({
-      _id,
-      iv,
-      ciphertext,
-      senderSessionId,
-      createdAt,
-    }));
+  // Live-only mode: messages are never saved to the database
+  async getMessagesByRoomHash() {
+    return [];
   },
 
   async deleteRoomByHash(roomHash) {
@@ -176,7 +132,6 @@ export const dataStore = {
       memRoomsByPublicId.delete(room.publicId);
     }
     memRoomsByHash.delete(roomHash);
-    memMessagesByRoomHash.delete(roomHash);
     return true;
   },
 };

@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { Server as SocketIOServer } from 'socket.io';
 import { connectDatabase, isMongoConnected } from './config/db.js';
+import { dataStore } from './store/dataStore.js';
 import { createRoomRouter } from './routes/rooms.js';
 import { createRoomRegistry, registerChatSocket } from './socket/chatSocket.js';
 
@@ -57,6 +58,14 @@ app.use(
 );
 app.use(express.json({ limit: '100kb' }));
 
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'SAIRO E2EE Chat API',
+    health: '/api/health',
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -72,6 +81,7 @@ registerChatSocket(io, roomRegistry);
 
 async function bootstrap() {
   await connectDatabase();
+  await dataStore.purgeLegacyMessages();
   server.listen(PORT, () => {
     console.log(`[SAIRO SERVER] Listening on http://localhost:${PORT}`);
     console.log(`[SAIRO SERVER] Allowed client origins: ${allowedOrigins.join(', ')}`);
