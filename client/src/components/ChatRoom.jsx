@@ -15,7 +15,13 @@ import { createChatSocket } from '../services/socket';
 import MessageBubble from './MessageBubble';
 import ShareModal from './ShareModal';
 
-export default function ChatRoom({ session, sessionId, onLeave }) {
+export default function ChatRoom({
+  session,
+  sessionId,
+  onLeave,
+  onComposerFocus,
+  onComposerBlur,
+}) {
   const { room, passcode, authVerifier, aesKey, alias } = session;
 
   const [messages, setMessages] = useState([]);
@@ -461,11 +467,14 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
                 value={draft}
                 onChange={handleDraftChange}
                 onKeyDown={handleKeyDown}
+                onFocus={onComposerFocus}
+                onBlur={onComposerBlur}
                 placeholder="Type a message..."
                 className="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-[#edf4f3] dark:placeholder:text-[#6f8690] sm:text-sm"
               />
               <button
                 type="submit"
+                onMouseDown={(e) => e.preventDefault()}
                 disabled={!draft.trim() || sending || connectionState !== 'connected'}
                 aria-label="Send message"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-md shadow-teal-950/30 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 dark:from-teal-500 dark:to-cyan-600 sm:h-10 sm:w-10"

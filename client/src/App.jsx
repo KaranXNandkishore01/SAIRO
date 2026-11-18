@@ -6,9 +6,18 @@ import Footer from './components/Footer';
 import LandingView from './components/LandingView';
 import PasscodeGate from './components/PasscodeGate';
 import ChatRoom from './components/ChatRoom';
+import { useMobileKeyboard } from './hooks/useMobileKeyboard';
 import { getOrCreateAlias, getOrCreateSessionId } from './utils/alias';
 
-function RoomRoute({ activeSession, sessionId, initialAlias, onRoomReady, onLeave }) {
+function RoomRoute({
+  activeSession,
+  sessionId,
+  initialAlias,
+  onRoomReady,
+  onLeave,
+  onComposerFocus,
+  onComposerBlur,
+}) {
   const { publicId } = useParams();
   const navigate = useNavigate();
 
@@ -18,6 +27,8 @@ function RoomRoute({ activeSession, sessionId, initialAlias, onRoomReady, onLeav
         session={activeSession}
         sessionId={sessionId}
         onLeave={onLeave}
+        onComposerFocus={onComposerFocus}
+        onComposerBlur={onComposerBlur}
       />
     );
   }
@@ -65,6 +76,7 @@ export default function App() {
   };
 
   const inActiveChat = Boolean(activeSession);
+  const { keyboardOpen, onComposerFocus, onComposerBlur } = useMobileKeyboard(inActiveChat);
 
   return (
     <div
@@ -98,6 +110,8 @@ export default function App() {
               initialAlias={initialAlias}
               onRoomReady={handleRoomReady}
               onLeave={handleLeaveRoom}
+              onComposerFocus={onComposerFocus}
+              onComposerBlur={onComposerBlur}
             />
           }
         />
@@ -112,7 +126,7 @@ export default function App() {
         />
       </Routes>
 
-      <Footer compact={inActiveChat} />
+      {!(inActiveChat && keyboardOpen) && <Footer compact={inActiveChat} />}
     </div>
   );
 }
