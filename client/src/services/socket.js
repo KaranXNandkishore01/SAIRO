@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL || undefined;
+const SOCKET_URL = (import.meta.env.VITE_SERVER_URL || '').replace(/\/+$/, '') || undefined;
 
 export function createChatSocket() {
   return io(SOCKET_URL, {

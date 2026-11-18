@@ -4,29 +4,29 @@ export default function AmbientBackground() {
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
     >
-      {/* Top-left sage aura */}
+      {/* Top-left balanced cyan-teal mist */}
       <div
-        className="animate-breathe-slow absolute -left-32 -top-32 h-[34rem] w-[34rem] rounded-full opacity-40 blur-[120px] dark:opacity-25"
+        className="animate-breathe-slow absolute -left-24 -top-24 h-[22rem] w-[22rem] rounded-full opacity-35 blur-[100px] dark:opacity-[0.18] sm:-left-32 sm:-top-32 sm:h-[34rem] sm:w-[34rem] sm:blur-[125px]"
         style={{
           background:
-            'radial-gradient(circle, rgba(114,176,160,0.48) 0%, rgba(114,176,160,0) 70%)',
+            'radial-gradient(circle, rgba(45,180,176,0.46) 0%, rgba(45,180,176,0) 70%)',
         }}
       />
-      {/* Bottom-right twilight lavender-slate aura */}
+      {/* Bottom-right calm slate-blue aura */}
       <div
-        className="animate-breathe-slow absolute -bottom-40 -right-24 h-[38rem] w-[38rem] rounded-full opacity-35 blur-[130px] dark:opacity-25"
+        className="animate-breathe-slow absolute -bottom-28 -right-20 h-[24rem] w-[24rem] rounded-full opacity-30 blur-[110px] dark:opacity-[0.16] sm:-bottom-40 sm:-right-24 sm:h-[36rem] sm:w-[36rem] sm:blur-[135px]"
         style={{
           animationDelay: '-6s',
           background:
-            'radial-gradient(circle, rgba(139,154,209,0.42) 0%, rgba(139,154,209,0) 70%)',
+            'radial-gradient(circle, rgba(78,132,179,0.4) 0%, rgba(78,132,179,0) 70%)',
         }}
       />
-      {/* Subtle center mist */}
+      {/* Subtle center lift for dark-mode depth balance */}
       <div
-        className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-[140px] dark:opacity-10"
+        className="absolute left-1/2 top-1/2 h-[20rem] w-[20rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15 blur-[120px] dark:opacity-[0.07] sm:h-[30rem] sm:w-[30rem]"
         style={{
           background:
-            'radial-gradient(circle, rgba(164,209,197,0.4) 0%, rgba(164,209,197,0) 72%)',
+            'radial-gradient(circle, rgba(94,186,178,0.38) 0%, rgba(94,186,178,0) 72%)',
         }}
       />
     </div>

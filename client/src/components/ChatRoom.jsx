@@ -68,7 +68,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
     [aesKey]
   );
 
-  // Fetch & decrypt existing messages
   useEffect(() => {
     let active = true;
     setLoadingHistory(true);
@@ -94,7 +93,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
     };
   }, [room.roomHash, authVerifier, decryptOne]);
 
-  // Connect real-time Socket.IO room
   useEffect(() => {
     const socket = createChatSocket();
     socketRef.current = socket;
@@ -201,7 +199,7 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
     setDraft(val);
 
     e.target.style.height = 'auto';
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
 
     if (!socketRef.current || connectionState !== 'connected') return;
 
@@ -294,16 +292,13 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 py-3 sm:px-6">
-      <div
-        className="flex flex-1 flex-col overflow-hidden rounded-3xl shadow-2xl shadow-slate-950/15 glass-panel"
-        style={{ minHeight: '72vh', maxHeight: 'calc(100vh - 10.5rem)' }}
-      >
+    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-2.5 py-2 sm:px-5 sm:py-3 md:px-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl shadow-2xl shadow-black/25 glass-panel sm:rounded-3xl">
         {/* Clean Minimal Top Bar */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-900/5 px-4 py-3 dark:border-white/5 sm:px-5">
-          <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-900/5 px-3.5 py-2.5 dark:border-teal-200/10 sm:px-5 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <span
-              className={`h-2.5 w-2.5 rounded-full ${
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                 connectionState === 'connected'
                   ? 'bg-emerald-400 animate-pulse-gentle'
                   : connectionState === 'burned'
@@ -311,7 +306,7 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
                     : 'bg-amber-400'
               }`}
             />
-            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+            <span className="truncate text-xs font-medium text-slate-800 dark:text-[#e6f0ef] sm:text-sm">
               {connectionState === 'connected'
                 ? participantCount === 1
                   ? 'Waiting for the other person'
@@ -324,22 +319,22 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={() => setShowShare(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-sage-500/15 px-3 py-1.5 text-xs font-medium text-sage-700 transition-colors hover:bg-sage-500/25 dark:text-sage-200"
+              className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-teal-500/15 px-3 py-1.5 text-xs font-medium text-teal-700 transition-colors hover:bg-teal-500/25 dark:bg-teal-400/15 dark:text-teal-200 dark:hover:bg-teal-400/25"
               title="Share passcode"
             >
               <Share2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Share</span>
+              <span className="hidden xs:inline sm:inline">Share</span>
             </button>
 
             <button
               type="button"
               onClick={() => setConfirmBurn(true)}
               disabled={connectionState === 'burned'}
-              className="flex items-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-40 dark:text-slate-400 dark:hover:text-rose-300"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-40 dark:text-[#9bb0b6] dark:hover:bg-rose-500/15 dark:hover:text-rose-300"
               title="Delete chat"
             >
               <Trash2 className="h-4 w-4" />
@@ -348,7 +343,7 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
             <button
               type="button"
               onClick={onLeave}
-              className="flex items-center rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-900/5 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-900/5 hover:text-slate-800 dark:text-[#9bb0b6] dark:hover:bg-white/10 dark:hover:text-white"
               title="Leave chat"
             >
               <LogOut className="h-4 w-4" />
@@ -356,37 +351,36 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
           </div>
         </div>
 
-        {/* Clean Message Canvas */}
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+        {/* Scrollable Message Stream */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5 md:px-6">
           {loadingHistory ? (
-            <div className="flex items-center justify-center py-12 text-xs text-slate-500 dark:text-slate-400">
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-sage-400/30 border-t-sage-400" />
+            <div className="flex items-center justify-center py-12 text-xs text-slate-500 dark:text-[#9bb0b6]">
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-400" />
               Loading chat...
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Show minimal share prompt only when chat is empty and waiting for peer */}
               {timeline.length === 0 &&
                 participantCount === 1 &&
                 connectionState === 'connected' && (
-                  <div className="mx-auto my-12 flex max-w-xs flex-col items-center text-center">
-                    <div className="mb-3 h-12 w-12 overflow-hidden rounded-2xl bg-black shadow-md shadow-cyan-950/30 ring-1 ring-cyan-400/30">
+                  <div className="mx-auto my-10 flex max-w-xs flex-col items-center px-4 text-center sm:my-14">
+                    <div className="mb-3 h-12 w-12 overflow-hidden rounded-2xl bg-black shadow-md shadow-cyan-950/40 ring-1 ring-cyan-400/35">
                       <img
                         src="/sairo-icon.png"
                         alt="SAIRO"
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <p className="text-sm text-slate-600 dark:text-[#b4c6cc]">
                       Share your secret passcode to connect.
                     </p>
                     <button
                       type="button"
                       onClick={handleQuickCopyPasscode}
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-sage-500/15 px-3.5 py-2 text-xs font-medium text-sage-700 transition-colors hover:bg-sage-500/25 dark:text-sage-200"
+                      className="mt-3.5 inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-teal-500/15 px-4 py-2 text-xs font-medium text-teal-700 transition-colors hover:bg-teal-500/25 dark:bg-teal-400/15 dark:text-teal-200 dark:hover:bg-teal-400/25"
                     >
                       {quickCopied ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
@@ -402,8 +396,8 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
                       key={item.data.id}
                       className="flex items-center justify-center py-1 animate-fade-up"
                     >
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/5 px-3 py-1 text-[11px] text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                        <Users className="h-3 w-3 opacity-70" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/5 px-3 py-1 text-[11px] text-slate-500 dark:bg-white/[0.06] dark:text-[#9bb0b6]">
+                        <Users className="h-3 w-3 opacity-75" />
                         {item.data.text}
                       </span>
                     </div>
@@ -432,11 +426,11 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
               })}
 
               {typingPeers.size > 0 && (
-                <div className="flex items-center gap-2 pl-10 pt-1 text-xs text-slate-500 dark:text-slate-400 animate-fade-up">
-                  <div className="flex items-center gap-1 rounded-2xl bg-white/75 px-3 py-2 dark:bg-dusk-800/80">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sage-400 [animation-delay:-0.25s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sage-400 [animation-delay:-0.12s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sage-400" />
+                <div className="flex items-center gap-2 pl-9 pt-1 text-xs text-slate-500 dark:text-[#9bb0b6] animate-fade-up sm:pl-10">
+                  <div className="flex items-center gap-1 rounded-2xl bg-white/80 px-3 py-2 dark:bg-[#1a2633]">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:-0.25s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:-0.12s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400" />
                   </div>
                   <span className="text-[11px]">Typing...</span>
                 </div>
@@ -447,36 +441,36 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
           )}
         </div>
 
-        {/* Ended Banner or Clean Composer */}
+        {/* Ended Banner or Responsive Composer */}
         {connectionState === 'burned' ? (
-          <div className="border-t border-rose-500/20 bg-rose-500/10 px-5 py-4 text-center">
+          <div className="shrink-0 border-t border-rose-500/20 bg-rose-500/10 px-4 py-4 text-center">
             <p className="text-sm font-medium text-rose-700 dark:text-rose-200">
               {burnedReason || 'This chat has ended.'}
             </p>
             <button
               type="button"
               onClick={onLeave}
-              className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900"
+              className="mt-3 min-h-[40px] rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-[#edf4f3] dark:text-[#0a0f14]"
             >
               Go Home
             </button>
           </div>
         ) : (
-          <div className="border-t border-slate-900/5 px-3 py-3 dark:border-white/5 sm:px-5">
+          <div className="shrink-0 border-t border-slate-900/5 px-2.5 py-2.5 dark:border-teal-200/10 sm:px-5 sm:py-3">
             {replyTarget && (
-              <div className="mb-2 flex items-center justify-between rounded-2xl border border-sage-500/20 bg-sage-500/10 px-3.5 py-2 text-xs">
+              <div className="mb-2 flex items-center justify-between rounded-2xl border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-xs dark:border-teal-400/20 dark:bg-teal-400/10">
                 <div className="min-w-0 pr-3">
-                  <span className="font-semibold text-sage-700 dark:text-sage-300">
+                  <span className="font-semibold text-teal-700 dark:text-teal-300">
                     Replying to {replyTarget.alias}
                   </span>
-                  <p className="truncate text-slate-600 dark:text-slate-300">
+                  <p className="truncate text-slate-600 dark:text-[#c7d6db]">
                     {replyTarget.text}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setReplyTarget(null)}
-                  className="rounded-lg p-1 text-slate-500 hover:bg-black/5 dark:hover:bg-white/10"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-black/5 dark:text-[#b4c6cc] dark:hover:bg-white/10"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -485,7 +479,7 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
 
             <form
               onSubmit={handleSend}
-              className="flex items-end gap-2 rounded-2xl border border-slate-900/10 bg-white/80 p-1.5 shadow-sm focus-within:border-sage-400 focus-within:ring-2 focus-within:ring-sage-400/20 dark:border-white/10 dark:bg-dusk-900/80"
+              className="flex items-end gap-2 rounded-2xl border border-slate-900/10 bg-white/85 p-1.5 shadow-sm focus-within:border-teal-500/70 focus-within:ring-2 focus-within:ring-teal-500/20 dark:border-teal-200/15 dark:bg-[#0d151d]/95 dark:focus-within:border-teal-400/70 dark:focus-within:ring-teal-400/20"
             >
               <textarea
                 ref={inputRef}
@@ -494,13 +488,13 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
                 onChange={handleDraftChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
-                className="max-h-36 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-[#edf4f3] dark:placeholder:text-[#6f8690] sm:text-sm"
               />
               <button
                 type="submit"
                 disabled={!draft.trim() || sending || connectionState !== 'connected'}
                 aria-label="Send message"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sage-500 to-teal-600 text-white shadow-md shadow-sage-900/20 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-md shadow-teal-950/30 transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 dark:from-teal-500 dark:to-cyan-600 sm:h-10 sm:w-10"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -519,34 +513,34 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
 
       {confirmBurn && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-fade-up"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-up"
           onClick={() => setConfirmBurn(false)}
         >
           <div
-            className="w-full max-w-sm rounded-3xl p-6 shadow-2xl glass-elevated"
+            className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-3xl p-5 shadow-2xl glass-elevated sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-500">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-500 dark:text-rose-400">
               <Trash2 className="h-5 w-5" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-[#edf4f3]">
               Delete this chat?
             </h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-[#9bb0b6]">
               All messages will be permanently deleted and everyone will be disconnected.
             </p>
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setConfirmBurn(false)}
-                className="rounded-xl px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-900/5 dark:text-slate-300 dark:hover:bg-white/10"
+                className="min-h-[40px] rounded-xl px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-900/5 dark:text-[#b4c6cc] dark:hover:bg-white/10"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleBurnRoom}
-                className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-600"
+                className="min-h-[40px] rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-600"
               >
                 Delete Chat
               </button>

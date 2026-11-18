@@ -4,35 +4,39 @@
 
 @layer base {
   :root {
-    --surface-bg: #f5f6f2;
-    --surface-card: rgba(255, 255, 255, 0.78);
-    --surface-elevated: rgba(255, 255, 255, 0.92);
-    --border-soft: rgba(31, 48, 44, 0.09);
-    --text-primary: #1a2624;
-    --text-secondary: #566864;
+    --surface-bg: #f4f6f3;
+    --surface-card: rgba(255, 255, 255, 0.84);
+    --surface-elevated: rgba(255, 255, 255, 0.96);
+    --border-soft: rgba(25, 45, 42, 0.1);
+    --highlight-inner: rgba(255, 255, 255, 0.7);
+    --text-primary: #162422;
+    --text-secondary: #526663;
   }
 
   .dark {
-    --surface-bg: #0c1116;
-    --surface-card: rgba(20, 29, 36, 0.72);
-    --surface-elevated: rgba(26, 37, 46, 0.85);
-    --border-soft: rgba(226, 238, 234, 0.08);
-    --text-primary: #e7eeec;
-    --text-secondary: #8ea19d;
+    --surface-bg: #0a0f14;
+    --surface-card: rgba(17, 25, 33, 0.84);
+    --surface-elevated: rgba(23, 34, 45, 0.95);
+    --border-soft: rgba(148, 198, 196, 0.13);
+    --highlight-inner: rgba(255, 255, 255, 0.045);
+    --text-primary: #edf4f3;
+    --text-secondary: #9bb0b6;
   }
 
   html,
   body,
   #root {
-    height: 100%;
+    min-height: 100%;
+    min-height: 100dvh;
   }
 
   body {
     background-color: var(--surface-bg);
     color: var(--text-primary);
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    transition: background-color 0.4s ease, color 0.4s ease;
+    transition: background-color 0.35s ease, color 0.35s ease;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -42,6 +46,7 @@
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
     border: 1px solid var(--border-soft);
+    box-shadow: inset 0 1px 0 0 var(--highlight-inner);
   }
 
   .glass-elevated {
@@ -49,6 +54,15 @@
     backdrop-filter: blur(26px);
     -webkit-backdrop-filter: blur(26px);
     border: 1px solid var(--border-soft);
+    box-shadow: inset 0 1px 0 0 var(--highlight-inner);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
   }
 }
 
@@ -63,10 +77,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(114, 176, 160, 0.22);
+  background: rgba(94, 173, 168, 0.24);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(114, 176, 160, 0.4);
+  background: rgba(94, 173, 168, 0.42);
 }

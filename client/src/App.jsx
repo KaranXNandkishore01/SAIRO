@@ -64,8 +64,14 @@ export default function App() {
     navigate('/');
   };
 
+  const inActiveChat = Boolean(activeSession);
+
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div
+      className={`relative flex flex-col ${
+        inActiveChat ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
+      }`}
+    >
       <AmbientBackground />
       <Header
         theme={theme}
@@ -106,7 +112,7 @@ export default function App() {
         />
       </Routes>
 
-      <Footer />
+      <Footer compact={inActiveChat} />
     </div>
   );
 }

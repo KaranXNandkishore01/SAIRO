@@ -14,9 +14,11 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = CLIENT_ORIGIN.split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean);
+
 const io = new SocketIOServer(server, {
   cors: {
-    origin: CLIENT_ORIGIN.split(',').map((s) => s.trim()),
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'DELETE'],
   },
   maxHttpBufferSize: 1e5, // 100KB max packet
@@ -27,7 +29,7 @@ const roomRegistry = createRoomRegistry();
 app.use(helmet());
 app.use(
   cors({
-    origin: CLIENT_ORIGIN.split(',').map((s) => s.trim()),
+    origin: allowedOrigins,
   })
 );
 app.use(express.json({ limit: '100kb' }));

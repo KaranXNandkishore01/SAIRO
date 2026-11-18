@@ -129,18 +129,18 @@ export default function LandingView({ initialAlias, onRoomReady }) {
   const strengthBarWidth = `${Math.min(strength.score, 4) * 25}%`;
   const strengthBarColor =
     strength.tone === 'strong'
-      ? 'bg-sage-400'
+      ? 'bg-teal-400'
       : strength.tone === 'good'
-        ? 'bg-teal-400/80'
+        ? 'bg-cyan-400/80'
         : strength.tone === 'fair'
           ? 'bg-amber-400/80'
           : 'bg-rose-400/75';
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6">
-      <div className="mb-7 max-w-lg text-center animate-fade-up">
-        <div className="mx-auto mb-4 flex flex-col items-center">
-          <div className="relative h-24 w-24 overflow-hidden rounded-3xl bg-black shadow-2xl shadow-cyan-950/40 ring-1 ring-cyan-400/30 sm:h-28 sm:w-28">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-3 py-6 sm:px-6 sm:py-8 md:py-10">
+      <div className="mb-6 max-w-lg text-center animate-fade-up sm:mb-7">
+        <div className="mx-auto mb-3.5 flex flex-col items-center sm:mb-4">
+          <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-black shadow-2xl shadow-cyan-950/50 ring-1 ring-cyan-400/35 sm:h-24 sm:w-24 sm:rounded-3xl md:h-28 md:w-28">
             <img
               src="/sairo-logo.jpg"
               alt="SAIRO Logo"
@@ -148,31 +148,31 @@ export default function LandingView({ initialAlias, onRoomReady }) {
             />
           </div>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-[#edf4f3] sm:text-2xl md:text-3xl">
           Private chat with just a{' '}
-          <span className="bg-gradient-to-r from-sage-500 to-teal-400 bg-clip-text text-transparent dark:from-sage-300 dark:to-teal-200">
+          <span className="bg-gradient-to-r from-teal-600 to-cyan-500 bg-clip-text text-transparent dark:from-teal-300 dark:to-cyan-300">
             secret passcode
           </span>
         </h1>
-        <p className="mt-2.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+        <p className="mt-2 px-2 text-xs leading-relaxed text-slate-600 dark:text-[#9bb0b6] sm:mt-2.5 sm:text-sm">
           No sign-up and no personal details needed. Create a secret passcode, share it
           with someone you trust, and start chatting privately.
         </p>
       </div>
 
       {/* Main Card */}
-      <div className="w-full max-w-md rounded-3xl p-6 shadow-2xl shadow-slate-950/10 glass-panel sm:p-7 animate-fade-up">
-        <div className="mb-6 grid grid-cols-2 rounded-2xl bg-slate-900/5 p-1 dark:bg-white/5">
+      <div className="w-full max-w-md rounded-2xl p-5 shadow-2xl shadow-black/20 glass-panel sm:rounded-3xl sm:p-7 animate-fade-up">
+        <div className="mb-5 grid grid-cols-2 rounded-2xl bg-slate-900/5 p-1 dark:bg-[#0d151d]/90 dark:ring-1 dark:ring-teal-200/10 sm:mb-6">
           <button
             type="button"
             onClick={() => {
               setMode('create');
               setError('');
             }}
-            className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all ${
+            className={`flex min-h-[42px] items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all ${
               mode === 'create'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-dusk-800 dark:text-sage-200'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-[#1a2633] dark:text-teal-200 dark:ring-1 dark:ring-teal-300/20'
+                : 'text-slate-500 hover:text-slate-800 dark:text-[#8ea5ad] dark:hover:text-[#edf4f3]'
             }`}
           >
             <Sparkles className="h-4 w-4" />
@@ -184,10 +184,10 @@ export default function LandingView({ initialAlias, onRoomReady }) {
               setMode('join');
               setError('');
             }}
-            className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all ${
+            className={`flex min-h-[42px] items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium transition-all ${
               mode === 'join'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-dusk-800 dark:text-sage-200'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-[#1a2633] dark:text-teal-200 dark:ring-1 dark:ring-teal-300/20'
+                : 'text-slate-500 hover:text-slate-800 dark:text-[#8ea5ad] dark:hover:text-[#edf4f3]'
             }`}
           >
             <KeyRound className="h-4 w-4" />
@@ -195,12 +195,12 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           <div>
-            <div className="mb-1.5 flex items-center justify-between">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <label
                 htmlFor="secret-passcode"
-                className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400"
+                className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-[#9bb0b6]"
               >
                 Secret Passcode
               </label>
@@ -208,7 +208,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                 <button
                   type="button"
                   onClick={handleGeneratePasscode}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-sage-600 transition-colors hover:text-sage-500 dark:text-sage-300 dark:hover:text-sage-200"
+                  className="inline-flex min-h-[28px] items-center gap-1 text-xs font-medium text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300 dark:hover:text-cyan-200"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   Generate code
@@ -217,7 +217,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
             </div>
 
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#788f98]" />
               <input
                 id="secret-passcode"
                 type={showPasscode ? 'text' : 'password'}
@@ -233,13 +233,13 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                 }
                 autoComplete="off"
                 spellCheck="false"
-                className="w-full rounded-2xl border border-slate-900/10 bg-white/70 py-3 pl-10 pr-11 font-mono text-sm text-slate-900 placeholder:font-sans placeholder:text-slate-400 focus:border-sage-400 focus:outline-none focus:ring-2 focus:ring-sage-400/25 dark:border-white/10 dark:bg-dusk-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="w-full rounded-2xl border border-slate-900/10 bg-white/80 py-3 pl-10 pr-12 font-mono text-base text-slate-900 placeholder:font-sans placeholder:text-slate-400 focus:border-teal-500/70 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:border-teal-200/15 dark:bg-[#0d151d]/90 dark:text-[#edf4f3] dark:placeholder:text-[#6f8690] dark:focus:border-teal-400/70 dark:focus:ring-teal-400/20 sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() => setShowPasscode((v) => !v)}
                 aria-label={showPasscode ? 'Hide passcode' : 'Show passcode'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:text-slate-700 dark:text-[#8ea5ad] dark:hover:text-white"
               >
                 {showPasscode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -253,7 +253,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                     style={{ width: strengthBarWidth }}
                   />
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-[#8ea5ad]">
                   {strength.label}
                 </p>
               </div>
@@ -261,17 +261,17 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           </div>
 
           <div>
-            <div className="mb-1.5 flex items-center justify-between">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <label
                 htmlFor="ephemeral-alias"
-                className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400"
+                className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-[#9bb0b6]"
               >
                 Display Name <span className="normal-case opacity-75">(optional)</span>
               </label>
               <button
                 type="button"
                 onClick={handleRefreshAlias}
-                className="inline-flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-sage-500 dark:text-slate-400 dark:hover:text-sage-300"
+                className="inline-flex min-h-[28px] items-center gap-1 text-xs text-slate-500 transition-colors hover:text-teal-600 dark:text-[#8ea5ad] dark:hover:text-teal-300"
               >
                 <RefreshCw className="h-3 w-3" />
                 Change
@@ -284,30 +284,30 @@ export default function LandingView({ initialAlias, onRoomReady }) {
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
               placeholder="Quiet Owl"
-              className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sage-400 focus:outline-none focus:ring-2 focus:ring-sage-400/25 dark:border-white/10 dark:bg-dusk-900/70 dark:text-slate-100"
+              className="w-full rounded-2xl border border-slate-900/10 bg-white/80 px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-500/70 focus:outline-none focus:ring-2 focus:ring-teal-500/20 dark:border-teal-200/15 dark:bg-[#0d151d]/90 dark:text-[#edf4f3] dark:placeholder:text-[#6f8690] dark:focus:border-teal-400/70 dark:focus:ring-teal-400/20 sm:text-sm"
             />
           </div>
 
           {mode === 'create' && (
-            <div className="rounded-2xl border border-slate-900/5 bg-slate-900/[0.03] dark:border-white/5 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-slate-900/5 bg-slate-900/[0.03] dark:border-teal-200/10 dark:bg-[#0d151d]/60">
               <button
                 type="button"
                 onClick={() => setShowOptions((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium text-slate-600 dark:text-slate-300"
+                className="flex min-h-[42px] w-full items-center justify-between px-3.5 py-2.5 text-xs font-medium text-slate-600 dark:text-[#c4d4d9] sm:px-4"
               >
                 <span className="flex items-center gap-2">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-sage-500 dark:text-sage-400" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-teal-600 dark:text-teal-300" />
                   Chat settings
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-slate-400 dark:text-[#849aa2]">
                   {TTL_OPTIONS.find((t) => t.minutes === ttlMinutes)?.label} • Max {maxParticipants}
                 </span>
               </button>
 
               {showOptions && (
-                <div className="space-y-4 border-t border-slate-900/5 px-4 py-3.5 dark:border-white/5">
+                <div className="space-y-4 border-t border-slate-900/5 px-3.5 py-3.5 dark:border-teal-200/10 sm:px-4">
                   <div>
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-[#9bb0b6]">
                       <Clock className="h-3.5 w-3.5" />
                       Auto-delete after
                     </div>
@@ -317,10 +317,10 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                           key={opt.minutes}
                           type="button"
                           onClick={() => setTtlMinutes(opt.minutes)}
-                          className={`rounded-xl py-1.5 text-xs font-medium transition-colors ${
+                          className={`min-h-[36px] rounded-xl py-1.5 text-[11px] font-medium transition-colors sm:text-xs ${
                             ttlMinutes === opt.minutes
-                              ? 'bg-sage-500/20 text-sage-700 ring-1 ring-sage-500/40 dark:text-sage-200'
-                              : 'bg-white/50 text-slate-600 hover:bg-white dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                              ? 'bg-teal-500/20 text-teal-700 ring-1 ring-teal-500/40 dark:bg-teal-400/20 dark:text-teal-200 dark:ring-teal-300/40'
+                              : 'bg-white/60 text-slate-600 hover:bg-white dark:bg-[#16212c] dark:text-[#9bb0b6] dark:hover:bg-[#1d2b38]'
                           }`}
                         >
                           {opt.label}
@@ -330,7 +330,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                   </div>
 
                   <div>
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-[#9bb0b6]">
                       <Users className="h-3.5 w-3.5" />
                       People limit
                     </div>
@@ -340,10 +340,10 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                           key={opt.value}
                           type="button"
                           onClick={() => setMaxParticipants(opt.value)}
-                          className={`rounded-xl py-1.5 text-xs font-medium transition-colors ${
+                          className={`min-h-[36px] rounded-xl py-1.5 text-[11px] font-medium transition-colors sm:text-xs ${
                             maxParticipants === opt.value
-                              ? 'bg-sage-500/20 text-sage-700 ring-1 ring-sage-500/40 dark:text-sage-200'
-                              : 'bg-white/50 text-slate-600 hover:bg-white dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10'
+                              ? 'bg-teal-500/20 text-teal-700 ring-1 ring-teal-500/40 dark:bg-teal-400/20 dark:text-teal-200 dark:ring-teal-300/40'
+                              : 'bg-white/60 text-slate-600 hover:bg-white dark:bg-[#16212c] dark:text-[#9bb0b6] dark:hover:bg-[#1d2b38]'
                           }`}
                         >
                           {opt.label}
@@ -352,16 +352,16 @@ export default function LandingView({ initialAlias, onRoomReady }) {
                     </div>
                   </div>
 
-                  <label className="flex cursor-pointer items-center justify-between gap-3 pt-1">
-                    <span className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                      <Flame className="h-3.5 w-3.5 text-amber-500/80" />
+                  <label className="flex min-h-[36px] cursor-pointer items-center justify-between gap-3 pt-1">
+                    <span className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#c4d4d9]">
+                      <Flame className="h-3.5 w-3.5 shrink-0 text-amber-500/90" />
                       Delete chat when everyone leaves
                     </span>
                     <input
                       type="checkbox"
                       checked={burnWhenEmpty}
                       onChange={(e) => setBurnWhenEmpty(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300 accent-sage-500"
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 accent-teal-500"
                     />
                   </label>
                 </div>
@@ -370,7 +370,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           )}
 
           {error && (
-            <div className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-700 dark:text-rose-200">
+            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-700 dark:text-rose-200">
               {error}
             </div>
           )}
@@ -378,7 +378,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           <button
             type="submit"
             disabled={loading}
-            className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sage-500 to-teal-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sage-900/20 transition-all hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sage-400/50 disabled:cursor-not-allowed disabled:opacity-65"
+            className="group flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-950/30 transition-all hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-teal-400/50 disabled:cursor-not-allowed disabled:opacity-65"
           >
             {loading ? (
               <>
