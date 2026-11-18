@@ -20,7 +20,7 @@ import {
   generateSecretPasscode,
   normalizePasscode,
 } from '../crypto/e2ee';
-import { generateEphemeralAlias, saveEphemeralAlias } from '../utils/alias';
+import { generateEphemeralAlias, getOrCreateSessionId, saveEphemeralAlias } from '../utils/alias';
 import { api } from '../services/api';
 
 const TTL_OPTIONS = [
@@ -76,6 +76,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
     setLoading(true);
 
     try {
+      const sessionId = getOrCreateSessionId();
       setStatusText('Securing passcode...');
       const { roomHash, authVerifier } = await deriveRoomIdentity(cleanCode);
 
@@ -89,6 +90,7 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           ttlMinutes,
           maxParticipants,
           burnWhenEmpty,
+          sessionId,
         });
 
         const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
@@ -100,11 +102,11 @@ export default function LandingView({ initialAlias, onRoomReady }) {
           aesKey,
           fingerprint,
           alias: cleanAlias,
-          isCreator: true,
+          isCreator: !room.reused,
         });
       } else {
         setStatusText('Connecting to chat...');
-        const room = await api.joinByPasscode({ roomHash, authVerifier });
+        const room = await api.joinByPasscode({ roomHash, authVerifier, sessionId });
 
         const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
 

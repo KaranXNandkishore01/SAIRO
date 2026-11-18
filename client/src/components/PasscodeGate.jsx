@@ -5,7 +5,7 @@ import {
   deriveRoomIdentity,
   normalizePasscode,
 } from '../crypto/e2ee';
-import { generateEphemeralAlias, saveEphemeralAlias } from '../utils/alias';
+import { generateEphemeralAlias, getOrCreateSessionId, saveEphemeralAlias } from '../utils/alias';
 import { api } from '../services/api';
 
 export default function PasscodeGate({ publicId, initialAlias, onRoomReady, onBackHome }) {
@@ -57,8 +57,9 @@ export default function PasscodeGate({ publicId, initialAlias, onRoomReady, onBa
     setLoading(true);
 
     try {
+      const sessionId = getOrCreateSessionId();
       const { roomHash, authVerifier } = await deriveRoomIdentity(cleanCode);
-      const room = await api.verifyRoomPasscode(publicId, { roomHash, authVerifier });
+      const room = await api.verifyRoomPasscode(publicId, { roomHash, authVerifier, sessionId });
       const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
 
       onRoomReady({

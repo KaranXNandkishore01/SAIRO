@@ -98,6 +98,11 @@ export function evaluatePasscodeStrength(raw) {
 }
 
 async function importPasscodeMaterial(passcode) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error(
+      'Encryption requires a secure connection (HTTPS or localhost). Please open SAIRO over HTTPS.'
+    );
+  }
   return crypto.subtle.importKey(
     'raw',
     textEncoder.encode(passcode),

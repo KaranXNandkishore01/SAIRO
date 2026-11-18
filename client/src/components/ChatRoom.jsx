@@ -3,21 +3,17 @@ import {
   Check,
   Copy,
   LogOut,
-  Phone,
   Send,
   Share2,
   Trash2,
   Users,
-  Video,
   X,
 } from 'lucide-react';
 import { decryptMessagePayload, encryptMessagePayload } from '../crypto/e2ee';
 import { api } from '../services/api';
 import { createChatSocket } from '../services/socket';
-import { useWebRTCCall } from '../hooks/useWebRTCCall';
 import MessageBubble from './MessageBubble';
 import ShareModal from './ShareModal';
-import CallOverlay from './CallOverlay';
 
 export default function ChatRoom({ session, sessionId, onLeave }) {
   const { room, passcode, authVerifier, aesKey, alias } = session;
@@ -37,20 +33,12 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
   const [showShare, setShowShare] = useState(false);
   const [confirmBurn, setConfirmBurn] = useState(false);
   const [quickCopied, setQuickCopied] = useState(false);
-  const [activeSocket, setActiveSocket] = useState(null);
 
   const socketRef = useRef(null);
   const endOfMessagesRef = useRef(null);
   const inputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
-
-  const call = useWebRTCCall({
-    socket: activeSocket,
-    aesKey,
-    alias,
-    participantCount,
-  });
 
   const decryptOne = useCallback(
     async (rawMsg) => {
@@ -108,7 +96,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
   useEffect(() => {
     const socket = createChatSocket();
     socketRef.current = socket;
-    setActiveSocket(socket);
 
     const joinRoom = () => {
       socket.emit(
@@ -133,6 +120,13 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
     };
 
     socket.on('connect', joinRoom);
+    if (socket.connected) {
+      joinRoom();
+    }
+
+    socket.on('connect_error', () => {
+      setConnectionState((prev) => (prev === 'burned' ? 'burned' : 'reconnecting'));
+    });
 
     socket.on('disconnect', () => {
       setConnectionState((prev) => (prev === 'burned' ? 'burned' : 'reconnecting'));
@@ -183,7 +177,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
       socket.emit('room:leave');
       socket.disconnect();
       socketRef.current = null;
-      setActiveSocket(null);
     };
   }, [room.roomHash, authVerifier, sessionId, decryptOne]);
 
@@ -336,36 +329,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
           <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
             <button
               type="button"
-              onClick={() => call.startCall('audio')}
-              disabled={connectionState !== 'connected' || call.callStatus !== 'idle'}
-              aria-label="Start voice call"
-              title={
-                participantCount < 2
-                  ? 'Waiting for the other person to join'
-                  : 'Voice call'
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
-            >
-              <Phone className="h-4 w-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => call.startCall('video')}
-              disabled={connectionState !== 'connected' || call.callStatus !== 'idle'}
-              aria-label="Start video call"
-              title={
-                participantCount < 2
-                  ? 'Waiting for the other person to join'
-                  : 'Video call'
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
-            >
-              <Video className="h-4 w-4" />
-            </button>
-
-            <button
-              type="button"
               onClick={() => setShowShare(true)}
               className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-teal-500/15 px-3 py-1.5 text-xs font-medium text-teal-700 transition-colors hover:bg-teal-500/25 dark:bg-teal-400/15 dark:text-teal-200 dark:hover:bg-teal-400/25"
               title="Share passcode"
@@ -394,13 +357,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
             </button>
           </div>
         </div>
-
-        {/* Subtle Call Status Notice */}
-        {call.notice && (
-          <div className="shrink-0 border-b border-teal-500/15 bg-teal-500/10 px-4 py-2 text-center text-xs text-teal-800 dark:border-teal-400/15 dark:bg-teal-400/10 dark:text-teal-200 animate-fade-up">
-            {call.notice}
-          </div>
-        )}
 
         {/* Scrollable Message Stream */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5 md:px-6">
@@ -561,8 +517,6 @@ export default function ChatRoom({ session, sessionId, onLeave }) {
           onClose={() => setShowShare(false)}
         />
       )}
-
-      <CallOverlay call={call} />
 
       {confirmBurn && (
         <div

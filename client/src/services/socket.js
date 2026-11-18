@@ -4,10 +4,11 @@ const SOCKET_URL = (import.meta.env.VITE_SERVER_URL || '').replace(/\/+$/, '') |
 
 export function createChatSocket() {
   return io(SOCKET_URL, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 15,
     reconnectionDelay: 1000,
+    timeout: 15000,
   });
 }

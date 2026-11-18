@@ -39,6 +39,9 @@ export const dataStore = {
     const publicId = generatePublicId();
 
     if (isMongoConnected()) {
+      // Remove any expired room with the same roomHash that MongoDB's 60s TTL sweep hasn't deleted yet
+      await Room.deleteOne({ roomHash, expiresAt: { $lte: new Date() } });
+
       const doc = await Room.create({
         publicId,
         roomHash,
