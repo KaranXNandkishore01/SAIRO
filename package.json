@@ -1,0 +1,17 @@
+{
+  "name": "sairo-e2ee-chat",
+  "version": "1.0.0",
+  "description": "SAIRO — Modern, soothing, zero-registration end-to-end encrypted chat built on the MERN stack",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "start": "concurrently -n server,client -c cyan,green \"npm --prefix server start\" \"npm --prefix client run preview\"",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

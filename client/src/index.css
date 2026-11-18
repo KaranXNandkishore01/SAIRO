@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface-bg: #f5f6f2;
+    --surface-card: rgba(255, 255, 255, 0.78);
+    --surface-elevated: rgba(255, 255, 255, 0.92);
+    --border-soft: rgba(31, 48, 44, 0.09);
+    --text-primary: #1a2624;
+    --text-secondary: #566864;
+  }
+
+  .dark {
+    --surface-bg: #0c1116;
+    --surface-card: rgba(20, 29, 36, 0.72);
+    --surface-elevated: rgba(26, 37, 46, 0.85);
+    --border-soft: rgba(226, 238, 234, 0.08);
+    --text-primary: #e7eeec;
+    --text-secondary: #8ea19d;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--surface-bg);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: var(--surface-card);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid var(--border-soft);
+  }
+
+  .glass-elevated {
+    background: var(--surface-elevated);
+    backdrop-filter: blur(26px);
+    -webkit-backdrop-filter: blur(26px);
+    border: 1px solid var(--border-soft);
+  }
+}
+
+/* Soothing quiet scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(114, 176, 160, 0.22);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(114, 176, 160, 0.4);
+}
