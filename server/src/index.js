@@ -10,7 +10,7 @@ import { createRoomRouter } from './routes/rooms.js';
 import { createRoomRegistry, registerChatSocket } from './socket/chatSocket.js';
 
 const PORT = Number(process.env.PORT) || 5000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const app = express();
@@ -19,9 +19,11 @@ app.set('trust proxy', 1);
 
 const server = http.createServer(app);
 
-const allowedOrigins = CLIENT_ORIGIN.split(',')
-  .map((s) => s.trim().replace(/\/+$/, ''))
+const defaultOrigins = ['http://localhost:5173', 'https://thesairo.vercel.app'];
+const envOrigins = CLIENT_ORIGIN.split(',')
+  .map((s) => s.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
   .filter(Boolean);
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
 
 function isOriginAllowed(origin) {
   if (!origin) return true; // Same-origin or server-to-server requests
@@ -37,7 +39,13 @@ const corsOriginHandler = (origin, callback) => {
   if (isOriginAllowed(origin)) {
     return callback(null, true);
   }
-  return callback(new Error(`CORS blocked for origin: ${origin}`));
+  return callback(null, false);
+};
+
+const corsOptions = {
+  origin: corsOriginHandler,
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-verifier'],
 };
 
 const io = new SocketIOServer(server, {
@@ -51,11 +59,8 @@ const io = new SocketIOServer(server, {
 const roomRegistry = createRoomRegistry();
 
 app.use(helmet());
-app.use(
-  cors({
-    origin: corsOriginHandler,
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/', (_req, res) => {
