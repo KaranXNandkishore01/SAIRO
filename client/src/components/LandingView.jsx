@@ -46,7 +46,16 @@ export default function LandingView({ initialAlias, onRoomReady }) {
     api.getHealth().catch(() => {});
   }, []);
 
-  const handleGeneratePasscode = () => {
+  const handleGeneratePasscode = async () => {
+    try {
+      const data = await api.getUniquePasscode();
+      if (data?.passcode) {
+        setPasscode(data.passcode);
+        setShowPasscode(true);
+        setError('');
+        return;
+      }
+    } catch {}
     setPasscode(generateSecretPasscode());
     setShowPasscode(true);
     setError('');
@@ -75,46 +84,66 @@ export default function LandingView({ initialAlias, onRoomReady }) {
       setStatusText('Securing passcode...');
       const { roomHash, authVerifier } = await deriveRoomIdentity(cleanCode);
 
-      if (mode === 'create') {
-        const salt = generateSaltHex();
-        setStatusText('Creating private chat...');
-        const room = await api.createRoom({
-          roomHash,
-          authVerifier,
-          salt,
-          maxParticipants,
-          sessionId,
-        });
+      const coldStartTimer = setTimeout(() => {
+        setStatusText('Waking up secure server (takes a few moments on first load)...');
+      }, 2500);
 
-        const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
+      try {
+        if (mode === 'create') {
+          const salt = generateSaltHex();
+          setStatusText('Creating private chat...');
+          const room = await api.createRoom({
+            roomHash,
+            authVerifier,
+            salt,
+            maxParticipants,
+            sessionId,
+          });
 
-        onRoomReady({
-          room,
-          passcode: cleanCode,
-          authVerifier,
-          aesKey,
-          fingerprint,
-          alias: cleanAlias,
-          isCreator: !room.reused,
-        });
-      } else {
-        setStatusText('Connecting to chat...');
-        const room = await api.joinByPasscode({ roomHash, authVerifier, sessionId });
+          const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
 
-        const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
+          onRoomReady({
+            room,
+            passcode: cleanCode,
+            authVerifier,
+            aesKey,
+            fingerprint,
+            alias: cleanAlias,
+            isCreator: !room.reused,
+          });
+        } else {
+          setStatusText('Connecting to chat...');
+          const room = await api.joinByPasscode({ roomHash, authVerifier, sessionId });
 
-        onRoomReady({
-          room,
-          passcode: cleanCode,
-          authVerifier,
-          aesKey,
-          fingerprint,
-          alias: cleanAlias,
-          isCreator: false,
-        });
+          const { aesKey, fingerprint } = await deriveRoomEncryption(cleanCode, room.salt);
+
+          onRoomReady({
+            room,
+            passcode: cleanCode,
+            authVerifier,
+            aesKey,
+            fingerprint,
+            alias: cleanAlias,
+            isCreator: false,
+          });
+        }
+      } finally {
+        clearTimeout(coldStartTimer);
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      const rawMsg = err?.message || '';
+      if (
+        rawMsg.includes('Failed to fetch') ||
+        rawMsg.includes('NetworkError') ||
+        rawMsg.includes('Load failed') ||
+        rawMsg.includes('ECONNRESET')
+      ) {
+        setError(
+          'Unable to reach the server. The free-tier backend is waking up from sleep. Please wait a few seconds and try again.'
+        );
+      } else {
+        setError(rawMsg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
       setStatusText('');

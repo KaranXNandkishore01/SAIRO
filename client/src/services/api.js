@@ -1,6 +1,9 @@
-const API_BASE = (import.meta.env.VITE_SERVER_URL || '').replace(/\/+$/, '');
+const API_BASE = (
+  import.meta.env.VITE_SERVER_URL ||
+  (import.meta.env.PROD ? 'https://sairo.onrender.com' : '')
+).replace(/\/+$/, '');
 
-async function request(path, options = {}, retries = 1) {
+async function request(path, options = {}, retries = 2) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -12,17 +15,18 @@ async function request(path, options = {}, retries = 1) {
     });
   } catch {
     if (retries > 0) {
-      await new Promise((r) => setTimeout(r, 1500));
+      // Free-tier cloud instances (Render) cold start takes ~30-50s and may reset connections while booting
+      await new Promise((r) => setTimeout(r, 2000));
       return request(path, options, retries - 1);
     }
     throw new Error(
-      'Unable to connect to the server. Please check that the backend is online and CORS allows this site.'
+      'Unable to reach the server. The free-tier backend is likely waking up from sleep (takes ~45s). Please wait a moment and try again.'
     );
   }
 
-  // Retry once automatically on cold-start 502/503/504 responses
+  // Retry automatically on cold-start 502/503/504 responses
   if (retries > 0 && [502, 503, 504].includes(res.status)) {
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2500));
     return request(path, options, retries - 1);
   }
 
@@ -38,6 +42,10 @@ async function request(path, options = {}, retries = 1) {
 export const api = {
   getHealth() {
     return request('/api/health');
+  },
+
+  getUniquePasscode() {
+    return request('/api/rooms/unique-passcode');
   },
 
   createRoom(payload) {

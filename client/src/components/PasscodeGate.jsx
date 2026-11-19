@@ -72,7 +72,17 @@ export default function PasscodeGate({ publicId, initialAlias, onRoomReady, onBa
         isCreator: false,
       });
     } catch (err) {
-      setError(err.message || 'Incorrect secret passcode.');
+      const rawMsg = err?.message || '';
+      if (
+        rawMsg.includes('Failed to fetch') ||
+        rawMsg.includes('NetworkError') ||
+        rawMsg.includes('Load failed') ||
+        rawMsg.includes('ECONNRESET')
+      ) {
+        setError('Unable to reach the server. The free-tier backend is waking up from sleep. Please wait a few seconds and try again.');
+      } else {
+        setError(rawMsg || 'Incorrect secret passcode.');
+      }
     } finally {
       setLoading(false);
     }

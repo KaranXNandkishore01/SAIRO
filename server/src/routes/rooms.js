@@ -1,9 +1,35 @@
 import express from 'express';
+import crypto from 'crypto';
 import { dataStore, timingSafeEqualHex } from '../store/dataStore.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
 
 const HEX_64_RE = /^[a-f0-9]{64}$/i;
 const HEX_32_RE = /^[a-f0-9]{32}$/i;
+
+const SOOTHING_ADJECTIVES = [
+  'amber', 'cedar', 'misty', 'quiet', 'velvet', 'silver', 'still', 'soft',
+  'lunar', 'mossy', 'gentle', 'dusk', 'calm', 'sage', 'hushed', 'pine',
+  'river', 'cloud', 'meadow', 'drift', 'willow', 'pebble', 'dawn', 'fern',
+];
+
+const SOOTHING_NOUNS = [
+  'lotus', 'harbor', 'grove', 'breeze', 'hollow', 'lantern', 'stream', 'cove',
+  'feather', 'horizon', 'shore', 'canopy', 'glade', 'spark', 'tide', 'ridge',
+  'echo', 'petal', 'valley', 'haven', 'aurora', 'ember', 'solace', 'zephyr',
+];
+
+function generateRandomPasscode() {
+  const adj = SOOTHING_ADJECTIVES[crypto.randomInt(0, SOOTHING_ADJECTIVES.length)];
+  const noun = SOOTHING_NOUNS[crypto.randomInt(0, SOOTHING_NOUNS.length)];
+  const num = crypto.randomInt(1000, 10000);
+  return `${adj}-${noun}-${num}`;
+}
+
+function deriveRoomHashSync(passcode) {
+  return crypto
+    .pbkdf2Sync(passcode.trim(), 'SAIRO::ROOM_LOOKUP_DOMAIN::v1', 120_000, 32, 'sha256')
+    .toString('hex');
+}
 
 export function createRoomRouter(io, roomRegistry) {
   const router = express.Router();
@@ -20,7 +46,25 @@ export function createRoomRouter(io, roomRegistry) {
     message: 'Too many chats started in a short time. Please wait a moment.',
   });
 
-  // POST /api/rooms — Create a zero-knowledge encrypted room (or seamlessly enter if already exists with matching passcode)
+  // GET /api/rooms/unique-passcode — Return a fresh passcode guaranteed not to be in active use
+  router.get('/unique-passcode', async (_req, res) => {
+    try {
+      for (let i = 0; i < 20; i += 1) {
+        const candidate = generateRandomPasscode();
+        const hash = deriveRoomHashSync(candidate);
+        const inUse = await dataStore.findRoomByHash(hash);
+        if (!inUse) {
+          return res.json({ passcode: candidate });
+        }
+      }
+      return res.json({ passcode: generateRandomPasscode() });
+    } catch (err) {
+      console.error('[ROOMS] Generate unique passcode error:', err);
+      return res.json({ passcode: generateRandomPasscode() });
+    }
+  });
+
+  // POST /api/rooms — Create a zero-knowledge encrypted room (reject if passcode is already in active use)
   router.post('/', createLimiter, async (req, res) => {
     try {
       const {
@@ -40,28 +84,26 @@ export function createRoomRouter(io, roomRegistry) {
       const clampedMax = Math.min(Math.max(Number(maxParticipants) || 10, 2), 25);
       const expiresAt = new Date(Date.now() + clampedTtl * 60 * 1000);
 
-      // If an active room already exists for this exact passcode, seamlessly connect to it
-      // instead of rejecting the user (as long as capacity allows or same session is reconnecting).
+      // Never assign or allow the same passcode to another person while an active chat is running!
       const existing = await dataStore.findRoomByHash(roomHash);
-      if (existing && timingSafeEqualHex(existing.authVerifier, authVerifier)) {
-        const activeCount = roomRegistry.getParticipantCount(existing.roomHash);
+      if (existing) {
         const alreadyIn = sessionId && roomRegistry.hasSession(existing.roomHash, sessionId);
 
-        if (!alreadyIn && activeCount >= existing.maxParticipants) {
-          return res.status(409).json({
-            error: 'A chat with this passcode is already full. Please choose a different passcode.',
+        if (alreadyIn && timingSafeEqualHex(existing.authVerifier, authVerifier)) {
+          return res.status(200).json({
+            publicId: existing.publicId,
+            roomHash: existing.roomHash,
+            salt: existing.salt,
+            maxParticipants: existing.maxParticipants,
+            burnWhenEmpty: true,
+            expiresAt: existing.expiresAt,
+            createdAt: existing.createdAt,
+            reused: true,
           });
         }
 
-        return res.status(200).json({
-          publicId: existing.publicId,
-          roomHash: existing.roomHash,
-          salt: existing.salt,
-          maxParticipants: existing.maxParticipants,
-          burnWhenEmpty: true,
-          expiresAt: existing.expiresAt,
-          createdAt: existing.createdAt,
-          reused: true,
+        return res.status(409).json({
+          error: 'This secret passcode is already in use by an active chat. Please choose or generate a different passcode, or use Join Chat to connect.',
         });
       }
 
@@ -85,25 +127,8 @@ export function createRoomRouter(io, roomRegistry) {
       });
     } catch (err) {
       if (err?.code === 11000) {
-        // Race condition: two users clicked Create with the same passcode at the exact same moment
-        try {
-          const { roomHash, authVerifier } = req.body || {};
-          const existing = await dataStore.findRoomByHash(roomHash);
-          if (existing && timingSafeEqualHex(existing.authVerifier, authVerifier)) {
-            return res.status(200).json({
-              publicId: existing.publicId,
-              roomHash: existing.roomHash,
-              salt: existing.salt,
-              maxParticipants: existing.maxParticipants,
-              burnWhenEmpty: existing.burnWhenEmpty,
-              expiresAt: existing.expiresAt,
-              createdAt: existing.createdAt,
-              reused: true,
-            });
-          }
-        } catch {}
         return res.status(409).json({
-          error: 'A chat with this passcode already exists. Please try another passcode.',
+          error: 'This secret passcode is already in use by an active chat. Please choose or generate a different passcode, or use Join Chat to connect.',
         });
       }
       console.error('[ROOMS] Create error:', err);
