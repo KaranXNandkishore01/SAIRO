@@ -39,6 +39,9 @@ export default function CallOverlay({ call }) {
     toggleMute,
     toggleCamera,
     switchCamera,
+    switchToVideo,
+    switchToVoice,
+    toggleCallType,
   } = call;
 
   const remoteAudioRef = useRef(null);
@@ -168,6 +171,7 @@ export default function CallOverlay({ call }) {
                 type="button"
                 onClick={toggleMute}
                 aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
                 className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
                   isMuted
                     ? 'bg-rose-500/20 text-rose-500 dark:text-rose-300'
@@ -177,10 +181,31 @@ export default function CallOverlay({ call }) {
                 {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
 
+              {callStatus === 'connected' && (
+                <button
+                  type="button"
+                  onClick={toggleCallType}
+                  aria-label={
+                    callType === 'video' ? 'Switch to voice call' : 'Switch to video call'
+                  }
+                  title={
+                    callType === 'video' ? 'Switch to voice call' : 'Switch to video call'
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-700 transition-colors hover:bg-teal-500/25 dark:bg-teal-400/15 dark:text-teal-200"
+                >
+                  {callType === 'video' ? (
+                    <Phone className="h-4 w-4" />
+                  ) : (
+                    <Video className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setMinimised(false)}
                 aria-label="Expand call"
+                title="Expand call"
                 className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/5 text-slate-700 hover:bg-slate-900/10 dark:bg-white/10 dark:text-[#edf4f3]"
               >
                 <Maximize2 className="h-4 w-4" />
@@ -189,8 +214,9 @@ export default function CallOverlay({ call }) {
               <button
                 type="button"
                 onClick={endCall}
-                aria-label="End call"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white hover:bg-rose-600"
+                aria-label="Cut call"
+                title={callStatus === 'calling' ? 'Cancel call' : 'Cut call'}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white transition-all hover:bg-rose-600 hover:scale-105 active:scale-95"
               >
                 <PhoneOff className="h-4 w-4" />
               </button>
@@ -314,61 +340,105 @@ export default function CallOverlay({ call }) {
 
           {/* Bottom Touch-Friendly Call Controls */}
           <div className="flex shrink-0 items-center justify-center gap-3 px-4 pt-2 safe-bottom sm:gap-4 sm:pb-8">
-            <button
-              type="button"
-              onClick={toggleMute}
-              aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-              title={isMuted ? 'Unmute' : 'Mute'}
-              className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all ${
-                isMuted
-                  ? 'bg-white text-[#0a0f14]'
-                  : 'bg-white/10 text-[#edf4f3] hover:bg-white/15'
-              }`}
-            >
-              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </button>
-
-            {callType === 'video' && (
+            {callStatus === 'calling' ? (
+              /* Calling/Ringing State: Obvious prominent button to cut/cancel call immediately */
+              <button
+                type="button"
+                onClick={endCall}
+                aria-label="Cancel call"
+                title="Cancel call"
+                className="flex min-h-[52px] items-center gap-2.5 rounded-2xl bg-rose-500 px-7 py-3 font-semibold text-white shadow-xl shadow-rose-950/50 transition-all hover:bg-rose-600 hover:scale-105 active:scale-95 animate-pulse-gentle"
+              >
+                <PhoneOff className="h-5 w-5" />
+                <span>Cancel Call</span>
+              </button>
+            ) : (
               <>
+                {/* Mute Microphone */}
                 <button
                   type="button"
-                  onClick={toggleCamera}
-                  aria-label={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
-                  title={isCameraOff ? 'Camera on' : 'Camera off'}
+                  onClick={toggleMute}
+                  aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                  title={isMuted ? 'Unmute' : 'Mute'}
                   className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all ${
-                    isCameraOff
+                    isMuted
                       ? 'bg-white text-[#0a0f14]'
                       : 'bg-white/10 text-[#edf4f3] hover:bg-white/15'
                   }`}
                 >
-                  {isCameraOff ? (
-                    <VideoOff className="h-5 w-5" />
-                  ) : (
-                    <Video className="h-5 w-5" />
-                  )}
+                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                 </button>
 
+                {/* WhatsApp-Style Switch Voice <-> Video Call Button */}
+                {callStatus === 'connected' && (
+                  <button
+                    type="button"
+                    onClick={toggleCallType}
+                    aria-label={
+                      callType === 'video'
+                        ? 'Switch to voice call'
+                        : 'Switch to video call'
+                    }
+                    title={
+                      callType === 'video'
+                        ? 'Switch to voice call'
+                        : 'Switch to video call'
+                    }
+                    className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/20 text-teal-300 ring-1 ring-teal-400/35 transition-all hover:bg-teal-500/30 hover:scale-105 active:scale-95"
+                  >
+                    {callType === 'video' ? (
+                      <Phone className="h-5 w-5" />
+                    ) : (
+                      <Video className="h-5 w-5" />
+                    )}
+                  </button>
+                )}
+
+                {/* Video Call Controls (Camera Off/On, Flip Front/Back) */}
+                {callType === 'video' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={toggleCamera}
+                      aria-label={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
+                      title={isCameraOff ? 'Camera on' : 'Camera off'}
+                      className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all ${
+                        isCameraOff
+                          ? 'bg-white text-[#0a0f14]'
+                          : 'bg-white/10 text-[#edf4f3] hover:bg-white/15'
+                      }`}
+                    >
+                      {isCameraOff ? (
+                        <VideoOff className="h-5 w-5" />
+                      ) : (
+                        <Video className="h-5 w-5" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={switchCamera}
+                      aria-label="Switch camera"
+                      title="Switch camera"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-[#edf4f3] transition-all hover:bg-white/15"
+                    >
+                      <SwitchCamera className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Cut Call Button */}
                 <button
                   type="button"
-                  onClick={switchCamera}
-                  aria-label="Switch camera"
-                  title="Switch camera"
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-[#edf4f3] transition-all hover:bg-white/15"
+                  onClick={endCall}
+                  aria-label="Cut call"
+                  title="Cut call"
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all hover:bg-rose-600 hover:scale-105 active:scale-95"
                 >
-                  <SwitchCamera className="h-5 w-5" />
+                  <PhoneOff className="h-5 w-5" />
                 </button>
               </>
             )}
-
-            <button
-              type="button"
-              onClick={endCall}
-              aria-label="End call"
-              title="End call"
-              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg shadow-rose-950/40 transition-all hover:bg-rose-600"
-            >
-              <PhoneOff className="h-5 w-5" />
-            </button>
           </div>
         </div>
       )}

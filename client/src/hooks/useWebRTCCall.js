@@ -54,6 +54,36 @@ function playSoftRingPulse() {
   }
 }
 
+function playOutgoingDialTone() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    [440, 480].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.03, now + 0.05);
+      gain.gain.setValueAtTime(0.03, now + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.28);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.3);
+    });
+
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 1500);
+  } catch {}
+}
+
 function describeMediaError(err, isVideo) {
   if (!window.isSecureContext) {
     return 'Voice and video calls require HTTPS (or localhost).';
@@ -103,6 +133,7 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
   const pendingIceRef = useRef([]);
   const ringTimeoutRef = useRef(null);
   const ringIntervalRef = useRef(null);
+  const dialIntervalRef = useRef(null);
   const noticeTimeoutRef = useRef(null);
 
   statusRef.current = callStatus;
@@ -119,6 +150,11 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
   const stopRingChime = useCallback(() => {
     clearInterval(ringIntervalRef.current);
     ringIntervalRef.current = null;
+  }, []);
+
+  const stopDialTone = useCallback(() => {
+    clearInterval(dialIntervalRef.current);
+    dialIntervalRef.current = null;
   }, []);
 
   const sendSignal = useCallback(
@@ -138,6 +174,7 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
     (optionalNotice = '') => {
       clearTimeout(ringTimeoutRef.current);
       stopRingChime();
+      stopDialTone();
 
       if (pcRef.current) {
         try {
@@ -177,7 +214,7 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
 
       if (optionalNotice) showNotice(optionalNotice);
     },
-    [showNotice, stopRingChime]
+    [showNotice, stopDialTone, stopRingChime]
   );
 
   // Live call duration timer
@@ -203,6 +240,17 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
     ringIntervalRef.current = setInterval(playSoftRingPulse, 2600);
     return stopRingChime;
   }, [callStatus, stopRingChime]);
+
+  // Outgoing dial tone while calling
+  useEffect(() => {
+    if (callStatus !== 'calling') {
+      stopDialTone();
+      return;
+    }
+    playOutgoingDialTone();
+    dialIntervalRef.current = setInterval(playOutgoingDialTone, 3500);
+    return stopDialTone;
+  }, [callStatus, stopDialTone]);
 
   const flushPendingIce = useCallback(async (pc) => {
     if (!pc || !pc.remoteDescription) return;
@@ -230,6 +278,18 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
         });
+      }
+
+      // Pre-add a video transceiver for audio-first calls so switching between
+      // voice and video can swap tracks via replaceTrack with zero renegotiation delay
+      if (!stream || !stream.getVideoTracks().length) {
+        try {
+          if (typeof pc.addTransceiver === 'function') {
+            pc.addTransceiver('video', { direction: 'sendrecv' });
+          }
+        } catch (e) {
+          console.warn('[CALL] addTransceiver video fallback:', e);
+        }
       }
 
       pc.ontrack = (event) => {
@@ -409,7 +469,7 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
     if (activeCallId) {
       sendSignal({ kind: 'hangup', callId: activeCallId }, peerSessionId);
     }
-    cleanupCall('Call ended.');
+    cleanupCall(statusRef.current === 'calling' ? 'Call cancelled.' : 'Call ended.');
   }, [cleanupCall, sendSignal]);
 
   // Toggle microphone
@@ -493,6 +553,157 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
       showNotice('Could not switch camera on this device.');
     }
   }, [facingMode, isCameraOff, showNotice]);
+
+  // Switch between Voice Call and Video Call during an active call (like WhatsApp)
+  const switchToVideo = useCallback(async () => {
+    if (statusRef.current !== 'connected') return;
+    const pc = pcRef.current;
+    if (!pc) return;
+
+    try {
+      showNotice('Switching to video...');
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facingMode || 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      const newVideoTrack = videoStream.getVideoTracks()[0];
+      if (!newVideoTrack) return;
+
+      const currentLocal = localStreamRef.current;
+      if (currentLocal) {
+        currentLocal.getVideoTracks().forEach((t) => {
+          try {
+            t.stop();
+            currentLocal.removeTrack(t);
+          } catch {}
+        });
+        currentLocal.addTrack(newVideoTrack);
+        setLocalStream(new MediaStream(currentLocal.getTracks()));
+      } else {
+        localStreamRef.current = videoStream;
+        setLocalStream(videoStream);
+      }
+
+      let videoSender = pc.getSenders().find(
+        (s) => s.track?.kind === 'video' || (s.track === null && !s.dtmf)
+      );
+
+      if (!videoSender && pc.getTransceivers) {
+        const transceivers = pc.getTransceivers();
+        const videoTransceiver = transceivers.find(
+          (t) => t.receiver?.track?.kind === 'video'
+        );
+        if (videoTransceiver) {
+          videoSender = videoTransceiver.sender;
+        }
+      }
+
+      if (videoSender && typeof videoSender.replaceTrack === 'function') {
+        await videoSender.replaceTrack(newVideoTrack);
+      } else {
+        pc.addTrack(newVideoTrack, currentLocal || videoStream);
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          await sendSignal(
+            {
+              kind: 'renegotiate-offer',
+              callId: callIdRef.current,
+              sdp: pc.localDescription.toJSON
+                ? pc.localDescription.toJSON()
+                : pc.localDescription,
+            },
+            remoteSessionIdRef.current
+          );
+        } catch (e) {
+          console.warn('[CALL] Renegotiate offer failed:', e);
+        }
+      }
+
+      setCallType('video');
+      setIsCameraOff(false);
+
+      await sendSignal(
+        {
+          kind: 'switch-call-type',
+          callId: callIdRef.current,
+          callType: 'video',
+        },
+        remoteSessionIdRef.current
+      );
+
+      showNotice('Switched to video call');
+    } catch (err) {
+      showNotice(describeMediaError(err, true));
+    }
+  }, [facingMode, sendSignal, showNotice]);
+
+  const switchToVoice = useCallback(async () => {
+    if (statusRef.current !== 'connected') return;
+    const pc = pcRef.current;
+    if (!pc) return;
+
+    try {
+      showNotice('Switching to voice...');
+      const currentLocal = localStreamRef.current;
+      if (currentLocal) {
+        currentLocal.getVideoTracks().forEach((t) => {
+          try {
+            t.stop();
+            currentLocal.removeTrack(t);
+          } catch {}
+        });
+        setLocalStream(new MediaStream(currentLocal.getTracks()));
+      }
+
+      let videoSender = pc.getSenders().find(
+        (s) => s.track?.kind === 'video' || (s.track === null && !s.dtmf)
+      );
+
+      if (!videoSender && pc.getTransceivers) {
+        const transceivers = pc.getTransceivers();
+        const videoTransceiver = transceivers.find(
+          (t) => t.receiver?.track?.kind === 'video'
+        );
+        if (videoTransceiver) {
+          videoSender = videoTransceiver.sender;
+        }
+      }
+
+      if (videoSender && typeof videoSender.replaceTrack === 'function') {
+        await videoSender.replaceTrack(null);
+      }
+
+      setCallType('audio');
+      setIsCameraOff(true);
+
+      await sendSignal(
+        {
+          kind: 'switch-call-type',
+          callId: callIdRef.current,
+          callType: 'audio',
+        },
+        remoteSessionIdRef.current
+      );
+
+      showNotice('Switched to voice call');
+    } catch (err) {
+      console.error('[CALL] Switch to voice error:', err);
+    }
+  }, [sendSignal, showNotice]);
+
+  const toggleCallType = useCallback(() => {
+    if (callTypeRef.current === 'video') {
+      switchToVoice();
+    } else {
+      switchToVideo();
+    }
+  }, [switchToVideo, switchToVoice]);
 
   // Listen to encrypted WebRTC signalling events on socket
   useEffect(() => {
@@ -606,6 +817,55 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
         return;
       }
 
+      if (data.kind === 'switch-call-type' && statusRef.current === 'connected') {
+        const nextType = data.callType === 'video' ? 'video' : 'audio';
+        setCallType(nextType);
+        if (nextType === 'video') {
+          setRemoteCameraOff(false);
+          showNotice(`${remoteAlias} switched to video`);
+        } else {
+          setRemoteCameraOff(true);
+          showNotice(`${remoteAlias} switched to voice`);
+        }
+        return;
+      }
+
+      if (data.kind === 'renegotiate-offer' && statusRef.current === 'connected') {
+        const pc = pcRef.current;
+        if (!pc) return;
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          await flushPendingIce(pc);
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          await sendSignal(
+            {
+              kind: 'renegotiate-answer',
+              callId: data.callId,
+              sdp: pc.localDescription.toJSON
+                ? pc.localDescription.toJSON()
+                : pc.localDescription,
+            },
+            fromSessionId
+          );
+        } catch (e) {
+          console.warn('[CALL] Renegotiate answer error:', e);
+        }
+        return;
+      }
+
+      if (data.kind === 'renegotiate-answer' && statusRef.current === 'connected') {
+        const pc = pcRef.current;
+        if (!pc) return;
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          await flushPendingIce(pc);
+        } catch (e) {
+          console.warn('[CALL] Set remote renegotiate answer error:', e);
+        }
+        return;
+      }
+
       if (data.kind === 'media-state') {
         if (typeof data.audioEnabled === 'boolean') setRemoteMuted(!data.audioEnabled);
         if (typeof data.videoEnabled === 'boolean') setRemoteCameraOff(!data.videoEnabled);
@@ -623,7 +883,7 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
       }
 
       if (data.kind === 'hangup') {
-        cleanupCall('Call ended.');
+        cleanupCall(statusRef.current === 'incoming' ? 'Call was cancelled.' : 'Call ended.');
       }
     };
 
@@ -676,5 +936,8 @@ export function useWebRTCCall({ socket, aesKey, alias, participantCount }) {
     toggleMute,
     toggleCamera,
     switchCamera,
+    switchToVideo,
+    switchToVoice,
+    toggleCallType,
   };
 }

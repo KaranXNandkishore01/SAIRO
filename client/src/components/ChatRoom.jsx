@@ -4,6 +4,7 @@ import {
   Copy,
   LogOut,
   Phone,
+  PhoneOff,
   Send,
   Share2,
   Trash2,
@@ -321,35 +322,82 @@ export default function ChatRoom({
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              onClick={() => call.startCall('audio')}
-              disabled={connectionState !== 'connected' || call.callStatus !== 'idle'}
-              aria-label="Start voice call"
-              title={
-                participantCount < 2
-                  ? 'Wait for the other person to join before calling'
-                  : 'Start voice call'
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
-            >
-              <Phone className="h-4 w-4" />
-            </button>
+            {call.callStatus !== 'idle' ? (
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                {call.callStatus === 'connected' && (
+                  <button
+                    type="button"
+                    onClick={call.toggleCallType}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/15 text-teal-700 transition-colors hover:bg-teal-500/25 dark:bg-teal-400/15 dark:text-teal-200"
+                    title={
+                      call.callType === 'video'
+                        ? 'Switch to voice call'
+                        : 'Switch to video call'
+                    }
+                    aria-label={
+                      call.callType === 'video'
+                        ? 'Switch to voice call'
+                        : 'Switch to video call'
+                    }
+                  >
+                    {call.callType === 'video' ? (
+                      <Phone className="h-4 w-4" />
+                    ) : (
+                      <Video className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
 
-            <button
-              type="button"
-              onClick={() => call.startCall('video')}
-              disabled={connectionState !== 'connected' || call.callStatus !== 'idle'}
-              aria-label="Start video call"
-              title={
-                participantCount < 2
-                  ? 'Wait for the other person to join before calling'
-                  : 'Start video call'
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
-            >
-              <Video className="h-4 w-4" />
-            </button>
+                <button
+                  type="button"
+                  onClick={call.endCall}
+                  className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-rose-950/30 transition-all hover:bg-rose-600"
+                  title={
+                    call.callStatus === 'calling'
+                      ? 'Cancel outgoing call'
+                      : 'Cut active call'
+                  }
+                  aria-label="Cut call"
+                >
+                  <PhoneOff className="h-3.5 w-3.5" />
+                  <span>
+                    {call.callStatus === 'calling' ? 'Cancel Call' : 'Cut Call'}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => call.startCall('audio')}
+                  disabled={connectionState !== 'connected'}
+                  aria-label="Start voice call"
+                  title={
+                    participantCount < 2
+                      ? 'Wait for the other person to join before calling'
+                      : 'Start voice call'
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
+                >
+                  <Phone className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => call.startCall('video')}
+                  disabled={connectionState !== 'connected'}
+                  aria-label="Start video call"
+                  title={
+                    participantCount < 2
+                      ? 'Wait for the other person to join before calling'
+                      : 'Start video call'
+                  }
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-teal-700 transition-colors hover:bg-teal-500/15 disabled:cursor-not-allowed disabled:opacity-35 dark:text-teal-300 dark:hover:bg-teal-400/15"
+                >
+                  <Video className="h-4 w-4" />
+                </button>
+              </>
+            )}
 
             <button
               type="button"
